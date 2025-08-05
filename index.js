@@ -1,17 +1,19 @@
-const mongoose = require('mongoose');
+const logger = require('./startup/logging.js')();
+console.log('Logger type:', typeof logger);
+const winston = require('winston');
 const express = require('express');
-const genres = require('./routes/genres.js');
+const { transform } = require('lodash');
 const app = express();
-app.use(express.json());
 
-app.use('/vidly/genres',genres);
-
-mongoose.connect('mongodb://localhost/vidly')
-.then(()=> console.log('Mongodb is connected...'))
-.catch((err)=> console.log('faild to connect Mongodb...'));
+require('./startup/routes.js')(app);
+require('./startup/db.js')();
+require('./startup/config.js')();
+require('./startup/validation.js')();
+require('./startup/prod')(app);
 
 const port = process.env.PORT || 3000;
-app.listen(port,()=>console.log(`Listning on port ${port}...`));
+const server = app.listen(port,()=>logger.info(`Listning on port ${port}...`),
+console.log((`Listning on port ${port}...`)));
 
-
+module.exports = server;
 

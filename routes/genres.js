@@ -1,41 +1,37 @@
 const express = require('express');
+const auth = require('../middleware/auth');
 const mongoose = require('mongoose');
-const Joi = require('joi');
+const {Genre, validate} = require('../models/genre');
+const admin = require('../middleware/admin');
+const asyncMiddleware = require('../middleware/async');
 const router = express.Router();
 
-const genreSchema = new mongoose.Schema({
-    name:{type: String,
-        required: true,
-    }
-});
-
-const Genre = mongoose.model('Genre', genreSchema);
 
 
-router.get('/',async (req,res)=>{
+router.get('/',asyncMiddleware(async (req,res,next)=>{
     const genres = await Genre.find().sort('name');
     res.send(genres);
-});
+}));
 
-router.get('/:id',async (req,res)=>{
+router.get('/:id',asyncMiddleware(async (req,res)=>{
     const genre = await Genre.findById(req.params.id);
    if(!genre) return res.status(404).send('Id is not found in the given list');
    res.send(genre);
-});
-router.post('/',async (req,res)=>{
+}));
+router.post('/',auth, async (req,res)=>{
 
-    const {error} = validateGenres(req.body);
+    const {error} = validate(req.body);
     if(error) return res.status(400).send(error.details[0].message);
 
-    let genre = new Genre({name: req.body.name});
-    genre = await genre.save();
+    const genre = new Genre({name: req.body.name});
+    await genre.save();
     res.send(genre);
     
 });
 
-router.put('/:id', async (req,res)=>{
+router.put('/:id', auth, async (req,res)=>{
 
-    const {error} = validateGenres(req.body);
+    const {error} = validate(req.body);
     if(error) return res.status(400).send(error.details[0].message);
 
     const genre = await Genre.findByIdAndUpdate(req.params.id,{name:req.body.name}, {new: true});
@@ -44,22 +40,13 @@ router.put('/:id', async (req,res)=>{
     res.send(genre);
 });
 
-router.delete('/:id',async (req,res)=>{
+router.delete('/:id',[auth,admin], async (req,res)=>{
 
-    const genre = await Genre.findByIdAndRemove(req.params.id);
+    const genre = await Genre.findByIdAndDelete(req.params.id);
     if(!genre) return res.status(404).send('Id is not found in the given list');
 
     res.send(genre);
 
 });
-
-function validateGenres(genres){
-
-    const schema = Joi.object({
-        name: Joi.string().min(3).required()
-    });
-
-    return schema.validate(genres);
-}
 
 module.exports = router;
