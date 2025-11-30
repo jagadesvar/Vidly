@@ -1,11 +1,12 @@
+const winston = require('winston');
 const mongoose = require('mongoose');
-const loggers = require('./logging');
 const config = require('config');
-const logger = loggers();
 
-module.exports = function(){
-    const db = config.get('db');
-    mongoose.connect(db)
-        .then(()=> logger.info(`Connected to ${db}...`),
-    console.log(`Connected to ${db}...`));
-}
+module.exports = function () {
+  const db = process.env.MONGO_URI || config.get('db');
+
+  mongoose
+    .connect(db)
+    .then(() => winston.info(`Connected to MongoDB...`))
+    .catch(err => winston.error('Could not connect to MongoDB...', err));
+};
